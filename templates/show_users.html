@@ -1,0 +1,9 @@
+{# display current users created in DB #}
+<h3> List of current users created in the system </h3>
+{% for user in users %}
+	{{user.username}}
+	{{user.password}}
+	{{user.email}}
+	{{user.created}}
+<BR>
+{%- endfor %}

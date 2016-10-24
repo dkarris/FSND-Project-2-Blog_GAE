@@ -1,5 +1,7 @@
+{# This is a jinja2 template for main page #}
 <!DOCTYPE html>
 <html>
+<html land="en">
 <style type="text/css" link = "/css/main.css">
 #blogname {
 	color: green;
@@ -9,7 +11,7 @@
 }	
 #login {
 	width: 30%;
-	background-color: red;
+	background-color: gray;
 }
 #header {
 	display: flex;
@@ -24,9 +26,19 @@
 			<H3> Blog by @DK </H3>
 		</div>
 		<div id = "login">
-			<a href="#"> sign in </a>
-			<a href="#"> sign up </a>
+			<a href="/login"> sign in </a> <BR>
+			<a href="/signup"> sign up </a>
 		</div>
 	</div>
+	<hr>
+{% include 'show_users.html' %}
+{# {% block show_users %}
+<hr>
+{# jinja2 comment #}
+{% include 'show_blogs.html'%}
+{# change this button later with bootstrap style #}
+<FORM>
+	<INPUT TYPE="button" onClick="parent.location='/createblog'">
+</FORM>
 </body>
 </html>
