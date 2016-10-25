@@ -1,8 +1,8 @@
 <h3>  Lets put some Blogs here (with links!!!) </h3>
-{% for user in users %}
-	{{user.username}}
-	{{user.password}}
-	{{user.email}}
-	{{user.created}}
-<BR>
+{% for blog in blogs %}
+	{{blog.blogtitle}}
+	{{blog.blogtext}}
+	{{blog.modified}}
+	<BR>
 {%- endfor %}
+
