@@ -39,7 +39,7 @@ class Blogdb(db.Model):
 	blogtitle = db.StringProperty(required = True)
 	blogtext = db.TextProperty()
 	created = db.DateTimeProperty(auto_now_add = True)
-class pagehandler(webapp2.RequestHandler):
+class Blogpage(webapp2.RequestHandler):
 	''' This default class for displaying blog pages'''
 	def write(self, *args, **kwargs):
 		''' function to simply use write vs response.out'''
@@ -48,7 +48,7 @@ class pagehandler(webapp2.RequestHandler):
 		''' function to render template '''
 		t = jinja2_env.get_template(template)
 		self.write(t.render(**kwargs))
-class createblog(pagehandler):
+class Createblog(Blogpage):
 	def get(self):
 		self.render_template('createblog.html')
 	def post(self):
@@ -59,7 +59,7 @@ class createblog(pagehandler):
 		blog_record.put()
 		time.sleep(0.4)
 		self.redirect('/')		
-class signup(pagehandler):
+class Signup(Blogpage):
 	def get(self):
 		self.render_template('signup.html')
 	def post(self):
@@ -76,13 +76,13 @@ class signup(pagehandler):
 			user_record = Userdb(username = username, password = password, email = email)
 			user_record.put()
 			time.sleep(0.5)
-class mainpage(pagehandler):
+class Mainpage(Blogpage):
 	def get(self):
 		users = get_user_obj()
-		blogs = get_all_blogs()
+		blogs = get_all_blogs('testuser2')
 		self.render_template('main.html', users = users, blogs = blogs)
-routes = [('/',mainpage),
-		  ('/signup',signup),
-		  ('/createblog',createblog)]
+routes = [('/',Mainpage),
+		  ('/signup',Signup),
+		  ('/createblog',Createblog)]
 app = webapp2.WSGIApplication(routes = routes,
 								debug = True)
