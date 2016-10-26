@@ -1,8 +1,10 @@
 <h3>  Lets put some Blogs here (with links!!!) </h3>
-{% for blog in blogs %}
-	{{blog.blogtitle}}
+{%- for blog in blogs %}
+	<a	href="{{blog.key().id()}}">
+	{{blog.blogtitle}} </a>
 	{{blog.blogtext}}
 	{{blog.modified}}
 	<BR>
 {%- endfor %}
-
+<hr> 
+Now repeat with the links <BR>
