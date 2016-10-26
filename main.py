@@ -40,6 +40,7 @@ class Blogdb(db.Model):
 	blogtext = db.TextProperty()
 	created = db.DateTimeProperty(auto_now_add = True)
 class Blogpage(webapp2.RequestHandler):
+	check_login = False
 	''' This default class for displaying blog pages'''
 	def write(self, *args, **kwargs):
 		''' function to simply use write vs response.out'''
@@ -48,6 +49,15 @@ class Blogpage(webapp2.RequestHandler):
 		''' function to render template '''
 		t = jinja2_env.get_template(template)
 		self.write(t.render(**kwargs))
+	def check_login(self):
+		''' returns login user object or none if not logged in '''
+		user = self.request.cookies.get('user')
+		if user:
+			user = str(user.split('|')[0])
+			user_obj = Userdb.all().filter('username =',user).get()
+		else:
+			user_obj = None
+		return user_obj
 class Createblog(Blogpage):
 	def get(self):
 		self.render_template('createblog.html')
@@ -78,9 +88,11 @@ class Signup(Blogpage):
 			time.sleep(0.5)
 class Mainpage(Blogpage):
 	def get(self):
-		users = get_user_obj()
-		blogs = get_all_blogs('testuser2')
-		self.render_template('main.html', users = users, blogs = blogs)
+		user_obj = self.check_login()
+		users = get_user_obj(user_obj.username)
+		#blogs = get_all_blogs(user_obj.username)
+		blogs = get_all_blogs()
+		self.render_template('main.html', user = user_obj, users = users, blogs = blogs)
 routes = [('/',Mainpage),
 		  ('/signup',Signup),
 		  ('/createblog',Createblog)]

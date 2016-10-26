@@ -26,8 +26,12 @@
 			<H3> Blog by @DK </H3>
 		</div>
 		<div id = "login">
+		{%if user == None %}
 			<a href="/login"> sign in </a> <BR>
 			<a href="/signup"> sign up </a>
+		{% else %}
+			logged as {{user.username}}
+		{% endif %}
 		</div>
 	</div>
 	<hr>
