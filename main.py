@@ -19,12 +19,7 @@ jinja2_env = jinja2.Environment(loader = loader, trim_blocks = True,
 
 SECRET = 'MySeCR5tMe55a6E'
 
-def make_secure_val(val):
-    return '%s|%s' % (val, hmac.new(SECRET, val).hexdigest())
-def check_secure_val(secure_val):
-    val = secure_val.split('|')[0]
-    if secure_val == make_secure_val(val):
-        return val
+# DB functions to retrieve user and blog
 def get_blog_user(blog_id):
 	''' returns user who created the blog record with blog_id'''
 	user_id = Blogdb.get_by_id(blog_id).key.parent()
@@ -42,6 +37,14 @@ def get_all_blogs(username = None):
 		key = db.Key.from_path('Userdb',Userdb.all().filter('username =', username).get().key().id())
  		bloglist = Blogdb.all().ancestor(key)
 		return bloglist
+#Cookies functions
+def make_secure_val(val):
+		return '%s|%s' % (val, hmac.new(SECRET, val).hexdigest())
+def check_secure_val(secure_val):
+	val = secure_val.split('|')[0]
+	if secure_val == make_secure_val(val):
+		return val
+#DB classes
 class Userdb(db.Model):
 	username = db.StringProperty(required = True)
 	password = db.StringProperty(required = True)
@@ -51,9 +54,9 @@ class Blogdb(db.Model):
 	blogtitle = db.StringProperty(required = True)
 	blogtext = db.TextProperty()
 	created = db.DateTimeProperty(auto_now_add = True)
+#Web page classes
 class Blogpage(webapp2.RequestHandler):
 	''' This default class for displaying blog pages'''
-	#user_logged = self.user_obj
 	def __init__(self, *args, **kwargs):
 		webapp2.RequestHandler.__init__(self, *args, **kwargs)
 		self.user_obj = self.check_login()
@@ -63,7 +66,10 @@ class Blogpage(webapp2.RequestHandler):
 			'Set-Cookie','%s=%s; Path=/' % (str(name), (cookie_val)))
 	def read_secure_cookie(self, name):
 		cookie_val = self.request.cookies.get(name)
-		return cookie_val and check_secure_val(cookie_val)
+		if cookie_val and not check_secure_val(cookie_val):
+				self.redirect('/badcookie')
+		return cookie_val
+		#return cookie_val and check_secure_val(cookie_val)
 	def write(self, *args, **kwargs):
 		''' function to simply use write vs response.out'''
 		self.response.write(*args, **kwargs)
@@ -76,10 +82,13 @@ class Blogpage(webapp2.RequestHandler):
 		user = self.read_secure_cookie('name')
 		if user:
 			user = str(user.split('|')[0])
-			user_obj = Userdb.all().filter('username =',user).get()
+			user_obj = get_user_obj(user).get()
 		else:
 			user_obj = None
 		return user_obj
+	def logout(self):
+		self.response.headers.add_header('Set-Cookie','user=; Path=/')
+		self.redirect('/logout')
 class Createblog(Blogpage):
 	def get(self):
 		self.render_template('createblog.html', user = self.user_obj)
@@ -94,7 +103,7 @@ class Createblog(Blogpage):
 		self.redirect('/')		
 class Signup(Blogpage):
 	def get(self):
-		self.render_template('signup.html')
+		self.render_template('signup.html', user = self.user_obj)
 	def post(self):
 		username = self.request.get('username')
 		password = self.request.get('password')
@@ -110,6 +119,28 @@ class Signup(Blogpage):
 			user_record.put()
 			self.set_secure_cookie('name',str(username))
 			self.redirect('/')
+class Login(Blogpage):
+	def get(self):
+		self.render_template('login.html', user = self.user_obj)
+	def post(self):
+		username = self.request.get('username')
+		password = self.request.get('password')
+		if get_user_obj(username).get(): # user exists check password
+#password checking block here
+			self.set_secure_cookie('name', str(username))
+			self.redirect('/')
+		else:
+			msg = 'No user found'
+			self.render_template('login.html', error = msg)
+class Logout(webapp2.RequestHandler):
+	def get(self):
+		self.response.headers.add_header('Set-Cookie','name=; Path=/')
+		self.response.write('You have been successfully logged out <BR>')
+		self.response.write("Please go to '/' or 'login'")
+class Badcookie(webapp2.RequestHandler):
+	def get(self):
+		self.response.write('Bad cookie. Possible cookie forging detected')
+		self.response.write('<BR>Please use /signup or login pages to enter')
 class Mainpage(Blogpage):
 	def get(self):
 		users = get_user_obj()
@@ -118,6 +149,9 @@ class Mainpage(Blogpage):
 			 user = self.user_obj)
 routes = [('/',Mainpage),
 		  ('/signup',Signup),
-		  ('/createblog',Createblog)]
+		  ('/createblog',Createblog),
+		  ('/badcookie',Badcookie),
+		  ('/login',Login),
+		  ('/logout',Logout)]
 app = webapp2.WSGIApplication(routes = routes,
 								debug = True)

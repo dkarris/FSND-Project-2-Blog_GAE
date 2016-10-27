@@ -1,7 +1,9 @@
+{% include 'header.html' %}
+
 <H4> Please enter your username and password </H4>
-<form>
+<form method = "post">
 	<label>Username</label><input type="text" name="username" value="{{username}}"> <BR>
 	<label>Password</label><input type="password" name="password"><BR>
-	{{Error}}
+	{{error}} <BR>
 	<input type = "submit" name = "submit_login">
 </form>
