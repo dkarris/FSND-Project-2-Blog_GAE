@@ -86,21 +86,35 @@ class Blogpage(webapp2.RequestHandler):
 		else:
 			user_obj = None
 		return user_obj
-	def logout(self):
-		self.response.headers.add_header('Set-Cookie','user=; Path=/')
-		self.redirect('/logout')
+	def clear_cookie(self):
+		self.response.headers.add_header('Set-Cookie','name=; Path=/')
 class Createblog(Blogpage):
 	def get(self):
 		self.render_template('createblog.html', user = self.user_obj)
 	def post(self):
 		blogtitle = self.request.get('blogtitle')
 		blogtext = self.request.get('blogtext')
-		parent = Userdb.all().filter('username =', 'testuser2').get()
+		parent = self.user_obj
+		#parent = Userdb.all().filter('username =', self.user_obj.username).get()
 		blog_record = Blogdb(parent = parent, blogtitle = blogtitle,
 			 blogtext = blogtext)
 		blog_record.put()
 		time.sleep(0.4)
 		self.redirect('/')		
+class Displayblog(Blogpage):
+	def get(self, blog_id):
+		#blog_record = Blogdb.gql("WHERE __key__  = 	KEY('Blogdb','4785074604081152','Userdb','5629499534213120')").get()
+		#blog_record = Blogdb.get_by_id(int(blog_id))
+		blog_id = int(blog_id)
+		#user_id = Blogdb.get_by_id(blog_id).key.parent()
+		parent = Blogdb.get_by_id(blog_id).key.parent()
+		self.write(parent)
+		#blog_record = Blogdb.get_by_id(blog_id, parent = self.parent)
+		#self.write(blog_record)
+		#self.write('<BR>')
+		#self.write(blog_id)
+		#self.render_template('displayblog.html', user = self.user_obj,
+		#	blogtitle = blog_record.blogtitle, blogtext = blog_record.blogtext)
 class Signup(Blogpage):
 	def get(self):
 		self.render_template('signup.html', user = self.user_obj)
@@ -118,6 +132,7 @@ class Signup(Blogpage):
 			user_record = Userdb(username = username, password = password, email = email)
 			user_record.put()
 			self.set_secure_cookie('name',str(username))
+			time.sleep(0.4)
 			self.redirect('/')
 class Login(Blogpage):
 	def get(self):
@@ -132,14 +147,16 @@ class Login(Blogpage):
 		else:
 			msg = 'No user found'
 			self.render_template('login.html', error = msg)
-class Logout(webapp2.RequestHandler):
-	def get(self):
-		self.response.headers.add_header('Set-Cookie','name=; Path=/')
+class Logout(Blogpage):
+	def get(self,blog_id):
+		self.clear_cookie()
 		self.response.write('You have been successfully logged out <BR>')
 		self.response.write("Please go to '/' or 'login'")
-class Badcookie(webapp2.RequestHandler):
+class Badcookie(Blogpage):
 	def get(self):
+		self.clear_cookie()
 		self.response.write('Bad cookie. Possible cookie forging detected')
+		self.response.write('Suspicious Cookie has been deleted from this client')
 		self.response.write('<BR>Please use /signup or login pages to enter')
 class Mainpage(Blogpage):
 	def get(self):
@@ -148,6 +165,7 @@ class Mainpage(Blogpage):
 		self.render_template('main.html', users = users, blogs = blogs,
 			 user = self.user_obj)
 routes = [('/',Mainpage),
+		  ('/([0-9]+)',Displayblog),
 		  ('/signup',Signup),
 		  ('/createblog',Createblog),
 		  ('/badcookie',Badcookie),
