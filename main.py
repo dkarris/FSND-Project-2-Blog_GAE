@@ -4,6 +4,8 @@ import os
 import random
 import jinja2
 import time
+import hmac
+import hashlib
 from google.appengine.ext import db
 # This is my magical SQL string
 # SELECT * FROM blog_db WHERE __key__ HAS ANCESTOR Key(`user_db`,'testuser')
@@ -13,6 +15,16 @@ loader = jinja2.FileSystemLoader(template_dir)
 jinja2_env = jinja2.Environment(loader = loader, trim_blocks = True,
 								autoescape = True)
 #Note. Should later clear why lstrip_blocks = True doesn't work.
+#Hashing block begin
+
+SECRET = 'MySeCR5tMe55a6E'
+
+def make_secure_val(val):
+    return '%s|%s' % (val, hmac.new(SECRET, val).hexdigest())
+def check_secure_val(secure_val):
+    val = secure_val.split('|')[0]
+    if secure_val == make_secure_val(val):
+        return val
 def get_blog_user(blog_id):
 	''' returns user who created the blog record with blog_id'''
 	user_id = Blogdb.get_by_id(blog_id).key.parent()
@@ -40,8 +52,18 @@ class Blogdb(db.Model):
 	blogtext = db.TextProperty()
 	created = db.DateTimeProperty(auto_now_add = True)
 class Blogpage(webapp2.RequestHandler):
-	check_login = False
 	''' This default class for displaying blog pages'''
+	#user_logged = self.user_obj
+	def __init__(self, *args, **kwargs):
+		webapp2.RequestHandler.__init__(self, *args, **kwargs)
+		self.user_obj = self.check_login()
+	def set_secure_cookie(self, name, val):
+		cookie_val = make_secure_val(val)
+		self.response.headers.add_header(
+			'Set-Cookie','%s=%s; Path=/' % (str(name), (cookie_val)))
+	def read_secure_cookie(self, name):
+		cookie_val = self.request.cookies.get(name)
+		return cookie_val and check_secure_val(cookie_val)
 	def write(self, *args, **kwargs):
 		''' function to simply use write vs response.out'''
 		self.response.write(*args, **kwargs)
@@ -51,7 +73,7 @@ class Blogpage(webapp2.RequestHandler):
 		self.write(t.render(**kwargs))
 	def check_login(self):
 		''' returns login user object or none if not logged in '''
-		user = self.request.cookies.get('user')
+		user = self.read_secure_cookie('name')
 		if user:
 			user = str(user.split('|')[0])
 			user_obj = Userdb.all().filter('username =',user).get()
@@ -60,12 +82,13 @@ class Blogpage(webapp2.RequestHandler):
 		return user_obj
 class Createblog(Blogpage):
 	def get(self):
-		self.render_template('createblog.html')
+		self.render_template('createblog.html', user = self.user_obj)
 	def post(self):
 		blogtitle = self.request.get('blogtitle')
 		blogtext = self.request.get('blogtext')
 		parent = Userdb.all().filter('username =', 'testuser2').get()
-		blog_record = Blogdb(parent = parent, blogtitle = blogtitle, blogtext = blogtext)
+		blog_record = Blogdb(parent = parent, blogtitle = blogtitle,
+			 blogtext = blogtext)
 		blog_record.put()
 		time.sleep(0.4)
 		self.redirect('/')		
@@ -81,18 +104,18 @@ class Signup(Blogpage):
 		regex_validation = True
 		if not regex_validation:
 #Later insert handler for username/password resubmission
-			somevariable = True
+			pass
 		else:
 			user_record = Userdb(username = username, password = password, email = email)
 			user_record.put()
-			time.sleep(0.5)
+			self.set_secure_cookie('name',str(username))
+			self.redirect('/')
 class Mainpage(Blogpage):
 	def get(self):
-		user_obj = self.check_login()
-		users = get_user_obj(user_obj.username)
-		#blogs = get_all_blogs(user_obj.username)
+		users = get_user_obj()
 		blogs = get_all_blogs()
-		self.render_template('main.html', user = user_obj, users = users, blogs = blogs)
+		self.render_template('main.html', users = users, blogs = blogs,
+			 user = self.user_obj)
 routes = [('/',Mainpage),
 		  ('/signup',Signup),
 		  ('/createblog',Createblog)]

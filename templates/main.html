@@ -1,44 +1,7 @@
-{# This is a jinja2 template for main page #}
-<!DOCTYPE html>
-<html>
-<html land="en">
-<style type="text/css" link = "/css/main.css">
-#blogname {
-	color: green;
-	background-color: silver;
-	width: 70%;
-	text-align:center;
-}	
-#login {
-	width: 30%;
-	background-color: gray;
-}
-#header {
-	display: flex;
-}
-</style>
-<head>
-	<title>Welcome to Udacity Project 2 blog by DK</title>
-</head>
-<body>
-	<div id = "header">
-		<div id = "blogname">
-			<H3> Blog by @DK </H3>
-		</div>
-		<div id = "login">
-		{%if user == None %}
-			<a href="/login"> sign in </a> <BR>
-			<a href="/signup"> sign up </a>
-		{% else %}
-			logged as {{user.username}}
-		{% endif %}
-		</div>
-	</div>
-	<hr>
+
+{% include 'header.html' %}
 {% include 'show_users.html' %}
-{# {% block show_users %}
 <hr>
-{# jinja2 comment #}
 {% include 'show_blogs.html'%}
 {# change this button later with bootstrap style #}
 <FORM>

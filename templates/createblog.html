@@ -1,15 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head>
-	<title>Create blog entry</title>
-</head>
-<body>
- You are logged as: {{username}}
-
+{% include 'header.html' %}
  <form method = "post">
  	<label>Blog title</label><input = "text" name = "blogtitle"> <BR>
  	<label>Blog text </label>
- 	<textarea>Enter some text here</textarea> <BR>
+ 	<textarea name = "blogtext">Enter some text here</textarea> <BR>
  	<input type="submit" name="submit_blog">
 </form>
 </body>
