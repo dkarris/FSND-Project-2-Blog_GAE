@@ -1,0 +1,15 @@
+ 
+{% include 'header.html' %}
+{% set blog_id_delete = 'kill'+blog_id %}
+
+<form method = "post">
+ 	<label>Blog title</label><input = "text" name = "blogtitle" value = "{{blogtitle}}"> <BR>
+ 	<label>Blog text </label>
+ 	<textarea name = "blogtext">{{blogtext}}</textarea> <BR>
+ 	<input type="submit" name="submit_edit">
+</form> 
+{{error}} <BR>
+<a href="{{blog_id_delete}}">Click here to delete the blog</a> Warning all comments will also get deleted.
+
+</body>
+</html>

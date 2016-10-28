@@ -1,9 +1,9 @@
 <h3>  Lets put some Blogs here (with links!!!) </h3>
 {%- for blog in blogs %}
-	<a	href="{{blog.key().id()}}">
-	{{blog.blogtitle}} </a> <br>
+	{% set urlkey = 'show' + blog.key()|string %}
+	<a	href="{{urlkey}}">{{blog.blogtitle}}</a> 
+	<br>
 	{{blog.blogtext}} 
-	{{blog.modified}}
 	<BR>
 {%- endfor %}
 <hr> 

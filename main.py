@@ -50,10 +50,10 @@ class Userdb(db.Model):
 	password = db.StringProperty(required = True)
 	email = db.StringProperty()
 	created = db.DateTimeProperty(auto_now_add = True)
+	
 class Blogdb(db.Model):
 	blogtitle = db.StringProperty(required = True)
 	blogtext = db.TextProperty()
-	blog_link = db.IntegerProperty() # This is a temporary solution since get_by_id() doesn't work w/o parent key if parent is set
 	created = db.DateTimeProperty(auto_now_add = True)
 #Web page classes
 class Blogpage(webapp2.RequestHandler):
@@ -87,6 +87,11 @@ class Blogpage(webapp2.RequestHandler):
 		else:
 			user_obj = None
 		return user_obj
+	def blog_author(self,blog_id):
+		author_key = Blogdb.get(blog_id).parent().key()
+		if self.user_obj.key() == author_key:
+			return True
+		return False
 	def clear_cookie(self):
 		self.response.headers.add_header('Set-Cookie','name=; Path=/')
 class Createblog(Blogpage):
@@ -98,21 +103,56 @@ class Createblog(Blogpage):
 		blog_record = Blogdb(parent = self.user_obj, blogtitle = blogtitle,
 			 blogtext = blogtext)
 		blog_record.put()
-		blog_record.blog_link = blog_record.key().id() #Following two lines are a work-around.
-		blog_record.put()
 		time.sleep(0.4)
-		#self.write(blog_record.blog_link)	
 		self.redirect('/')		
 class Displayblog(Blogpage):
 	def get(self, blog_id):
-		blog_link = int(blog_id)
-		blog = Blogdb.all().filter('blog_link =', blog_link).get() #The work around.
-		#The string below is working
-		#blog = db.GqlQuery(("SELECT * FROM Blogdb WHERE __key__= KEY('Userdb',5629499534213120,'Blogdb',4785074604081152)")).get()
-		#blog = Blogdb.get_by_id(blog_id, parent = self.user_obj)
-		#blog = Blogdb.get_by_id(blog_id)
+		blog_id = blog_id[4:] #delete show from the parameter
+		blog = db.get(blog_id)
+		if not blog:
+			pass		#enter here key_id error handler
 		self.render_template('displayblog.html', user = self.user_obj,
-			blogtitle = blog.blogtitle, blogtext = blog.blogtext)
+			blogtitle = blog.blogtitle, blogtext = blog.blogtext,
+			blog_id = blog_id)
+class Editblog(Blogpage):
+	def get(self, blog_id):
+		blog_id = blog_id[4:] # clear key
+		if not self.blog_author(blog_id):
+			self.render_template('error_user.html')
+		blog = db.get(blog_id)
+		if not blog:
+			self.render_template('error_link.html')
+		self.render_template('editblog.html', user = self.user_obj,
+			blogtitle = blog.blogtitle, blogtext = blog.blogtext,
+			blog_id = blog_id)
+	def post(self, blog_id):
+		blogtitle = self.request.get('blogtitle')
+		blogtext = self.request.get('blogtext')
+		blog_id = blog_id[4:]
+		if not self.blog_author(blog_id):
+			self.write('Wrong user')
+		if blogtitle and blogtext:
+			blog = db.get(blog_id)
+			blog.blogtext = blogtext
+			blog.blogtitle = blogtitle
+			blog.put()
+			time.sleep(0.4)
+			self.redirect('/')
+		else:
+			error ='Either blog title or blog text are empty'
+			self.render_template('editblog.html', user = self.user_obj,
+				blogtitle = blogtitle, blogtext=blogtext, blog_id= blog_id, error = error)
+class Deleteblog(Blogpage):
+	def get(self, blog_id):
+		blog_id = blog_id[4:]
+		if not self.blog_author(blog_id):
+			self.render_template('error_user.html')
+		blog = db.get(blog_id)
+		if not blog:
+			self.render_template('error_link.html')
+		blog.delete()
+		time.sleep(0.4)
+		self.redirect('/')
 class Signup(Blogpage):
 	def get(self):
 		self.render_template('signup.html', user = self.user_obj)
@@ -163,7 +203,9 @@ class Mainpage(Blogpage):
 		self.render_template('main.html', users = users, blogs = blogs,
 			 user = self.user_obj)
 routes = [('/',Mainpage),
-		  ('/([0-9]+)',Displayblog),
+		  ('/(show[a-zA-Z0-9-_]+)',Displayblog),
+		  ('/(edit[a-zA-Z0-9-_]+)',Editblog),
+		  ('/(kill[a-zA-Z0-9-_]+)',Deleteblog),
 		  ('/signup',Signup),
 		  ('/createblog',Createblog),
 		  ('/badcookie',Badcookie),

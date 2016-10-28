@@ -1,16 +1,10 @@
  
 {% include 'header.html' %}
- 
+{% set blog_id_edit = 'edit'+blog_id %}
+{% set blog_id_delete = 'kill'+blog_id %}
+
 Blog title: {{blogtitle}} <BR>
-Blog text: {{blogtext}}
+Blog text: {{blogtext}} <BR>
 
-
-
- <!---<form method = "post">
- 	<label>Blog title</label><input = "text" name = "blogtitle"> <BR>
- 	<label>Blog text </label>
- 	<textarea name = "blogtext">Enter some text here</textarea> <BR>
- 	<input type="submit" name="submit_blog">
-</form> !>
-</body>
-</html>
+<a href ="{{blog_id_edit}}">Click here to edit the content</a> <BR>
+<a href="{{blog_id_delete}}">Click here to delete the blog</a> Warning all comments will also get deleted.
