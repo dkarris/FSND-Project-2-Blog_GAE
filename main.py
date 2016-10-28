@@ -25,7 +25,7 @@ def get_blog_user(blog_id):
 	user_id = Blogdb.get_by_id(blog_id).key.parent()
 	return user_id
 def get_user_obj(username=None):
-		''' Returns all user  object or object with username'''
+		''' Returns all users  object or object with username'''
 		if username:
 			return Userdb.all().filter('username =', username)
 		else:
@@ -53,6 +53,7 @@ class Userdb(db.Model):
 class Blogdb(db.Model):
 	blogtitle = db.StringProperty(required = True)
 	blogtext = db.TextProperty()
+	blog_link = db.IntegerProperty() # This is a temporary solution since get_by_id() doesn't work w/o parent key if parent is set
 	created = db.DateTimeProperty(auto_now_add = True)
 #Web page classes
 class Blogpage(webapp2.RequestHandler):
@@ -94,27 +95,24 @@ class Createblog(Blogpage):
 	def post(self):
 		blogtitle = self.request.get('blogtitle')
 		blogtext = self.request.get('blogtext')
-		parent = self.user_obj
-		#parent = Userdb.all().filter('username =', self.user_obj.username).get()
-		blog_record = Blogdb(parent = parent, blogtitle = blogtitle,
+		blog_record = Blogdb(parent = self.user_obj, blogtitle = blogtitle,
 			 blogtext = blogtext)
 		blog_record.put()
+		blog_record.blog_link = blog_record.key().id() #Following two lines are a work-around.
+		blog_record.put()
 		time.sleep(0.4)
+		#self.write(blog_record.blog_link)	
 		self.redirect('/')		
 class Displayblog(Blogpage):
 	def get(self, blog_id):
-		#blog_record = Blogdb.gql("WHERE __key__  = 	KEY('Blogdb','4785074604081152','Userdb','5629499534213120')").get()
-		#blog_record = Blogdb.get_by_id(int(blog_id))
-		blog_id = int(blog_id)
-		#user_id = Blogdb.get_by_id(blog_id).key.parent()
-		parent = Blogdb.get_by_id(blog_id).key.parent()
-		self.write(parent)
-		#blog_record = Blogdb.get_by_id(blog_id, parent = self.parent)
-		#self.write(blog_record)
-		#self.write('<BR>')
-		#self.write(blog_id)
-		#self.render_template('displayblog.html', user = self.user_obj,
-		#	blogtitle = blog_record.blogtitle, blogtext = blog_record.blogtext)
+		blog_link = int(blog_id)
+		blog = Blogdb.all().filter('blog_link =', blog_link).get() #The work around.
+		#The string below is working
+		#blog = db.GqlQuery(("SELECT * FROM Blogdb WHERE __key__= KEY('Userdb',5629499534213120,'Blogdb',4785074604081152)")).get()
+		#blog = Blogdb.get_by_id(blog_id, parent = self.user_obj)
+		#blog = Blogdb.get_by_id(blog_id)
+		self.render_template('displayblog.html', user = self.user_obj,
+			blogtitle = blog.blogtitle, blogtext = blog.blogtext)
 class Signup(Blogpage):
 	def get(self):
 		self.render_template('signup.html', user = self.user_obj)
@@ -148,7 +146,7 @@ class Login(Blogpage):
 			msg = 'No user found'
 			self.render_template('login.html', error = msg)
 class Logout(Blogpage):
-	def get(self,blog_id):
+	def get(self):
 		self.clear_cookie()
 		self.response.write('You have been successfully logged out <BR>')
 		self.response.write("Please go to '/' or 'login'")
