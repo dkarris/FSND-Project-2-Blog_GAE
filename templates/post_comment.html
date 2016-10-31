@@ -1,0 +1,14 @@
+<form method="post">
+	<input type="hidden" name="comment_key" value={{comment_key}}>
+	<div>
+		{% if old_comment %}
+			Your old comment:
+			{{old_comment}} <BR>
+		{% endif %}
+		<label>Enter your comment here:<BR></label>
+		<textarea name="new_comment"></textarea>
+	</div>
+	{{error}}
+	<input type="submit" name="submit_comment">
+</form>
+<hr>

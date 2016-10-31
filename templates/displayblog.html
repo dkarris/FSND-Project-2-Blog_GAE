@@ -4,7 +4,23 @@
 {% set blog_id_delete = 'kill'+blog_id %}
 
 Blog title: {{blogtitle}} <BR>
-Blog text: {{blogtext}} <BR>
+Blog text: {{blogtext}} <BR><BR>
 
-<a href ="{{blog_id_edit}}">Click here to edit the content</a> <BR>
-<a href="{{blog_id_delete}}">Click here to delete the blog</a> Warning all comments will also get deleted.
+Comments:
+<hr>
+ 	{% for comment in comments %}
+ 		<form method="post" name="edit_comment">
+ 			<div>
+				<input type="hidden" name="comment_id" value="{{comment.key()}}"> 
+				User: {{comment.author}} <BR>
+				Comment: {{comment.comment}} <BR>
+				<label>created:</label>{{comment.created}} 
+				<button type="submit" formaction="/updatecomment" formmethod="get">Edit</button>
+				<button type="submit" formaction = "/deletecomment">Delete comment</button>
+			</div>
+		</form>
+	{% endfor %}
+{% include 'post_comment.html' %}
+
+<a href ="{{blog_id_edit}}">Click here to edit blog content</a> <BR>
+<a href="{{blog_id_delete}}">Click here to delete the blog</a> <BR>Warning all comments will also get deleted.<BR>

@@ -50,10 +50,16 @@ class Userdb(db.Model):
 	password = db.StringProperty(required = True)
 	email = db.StringProperty()
 	created = db.DateTimeProperty(auto_now_add = True)
-	
+
 class Blogdb(db.Model):
 	blogtitle = db.StringProperty(required = True)
 	blogtext = db.TextProperty()
+	created = db.DateTimeProperty(auto_now_add = True)
+
+class Commentdb(db.Model):
+	comment_type = db.StringProperty(required = True) #Will store votes or comments values.
+	comment = db.TextProperty(required = True)
+	author = db.StringProperty(required = True)
 	created = db.DateTimeProperty(auto_now_add = True)
 #Web page classes
 class Blogpage(webapp2.RequestHandler):
@@ -89,14 +95,19 @@ class Blogpage(webapp2.RequestHandler):
 		return user_obj
 	def blog_author(self,blog_id):
 		author_key = Blogdb.get(blog_id).parent().key()
-		if self.user_obj.key() == author_key:
-			return True
-		return False
+		if not self.user_obj or self.user_obj.key() != author_key: 
+			return False
+		return True
 	def clear_cookie(self):
 		self.response.headers.add_header('Set-Cookie','name=; Path=/')
 class Createblog(Blogpage):
 	def get(self):
-		self.render_template('createblog.html', user = self.user_obj)
+		#Check if logged in
+		if not self.user_obj:
+			self.write('You are not logged in! <BR>')
+			self.write('Please <a href="/">click here</a> to go the main page')
+		else:	
+			self.render_template('createblog.html', user = self.user_obj)
 	def post(self):
 		blogtitle = self.request.get('blogtitle')
 		blogtext = self.request.get('blogtext')
@@ -110,21 +121,50 @@ class Displayblog(Blogpage):
 		blog_id = blog_id[4:] #delete show from the parameter
 		blog = db.get(blog_id)
 		if not blog:
-			pass		#enter here key_id error handler
-		self.render_template('displayblog.html', user = self.user_obj,
-			blogtitle = blog.blogtitle, blogtext = blog.blogtext,
-			blog_id = blog_id)
+			self.write('You are not logged in! <BR>')
+			self.write('Please <a href="/">click here</a> to go the main page')
+		else:
+			#load comments
+			comments = Commentdb.all().ancestor(blog)
+			self.render_template('displayblog.html', user = self.user_obj,
+				blogtitle = blog.blogtitle, blogtext = blog.blogtext,
+				blog_id = blog_id, comments = comments)
+	def post(self, blog_id):
+		''' we use post method for commentary posting, so need 
+		define post method in display blog page as well '''
+		if self.user_obj:
+			blog_id = blog_id[4:]
+			blog = db.get(blog_id)
+			comments = Commentdb.all().ancestor(blog)
+			commenttext = self.request.get('new_comment')
+			if not commenttext:
+				error = "Comments can't be blank"
+				self.render_template('displayblog.html', user = self.user_obj,
+				blogtitle = blog.blogtitle, blogtext = blog.blogtext,
+				blog_id = blog_id, comments = comments, error = error)
+			else:
+				comment = Commentdb (comment_type = 'comment',
+				 comment = commenttext, author = self.user_obj.username,parent = blog)
+				comment.put()
+				time.sleep(0.4)
+				self.render_template('displayblog.html', user = self.user_obj,
+					blogtitle = blog.blogtitle, blogtext = blog.blogtext,
+					blog_id = blog_id, comments = comments)
+		else:
+			self.write('Sorry, you must be logged in order to comment records <BR>')
+			self.write('Please <a href="/">click here</a> to go to the main page')
 class Editblog(Blogpage):
 	def get(self, blog_id):
 		blog_id = blog_id[4:] # clear key
 		if not self.blog_author(blog_id):
 			self.render_template('error_user.html')
-		blog = db.get(blog_id)
-		if not blog:
-			self.render_template('error_link.html')
-		self.render_template('editblog.html', user = self.user_obj,
-			blogtitle = blog.blogtitle, blogtext = blog.blogtext,
-			blog_id = blog_id)
+		else:	
+			blog = db.get(blog_id)
+			if not blog:
+				self.render_template('error_link.html')
+			self.render_template('editblog.html', user = self.user_obj,
+				blogtitle = blog.blogtitle, blogtext = blog.blogtext,
+				blog_id = blog_id)
 	def post(self, blog_id):
 		blogtitle = self.request.get('blogtitle')
 		blogtext = self.request.get('blogtext')
@@ -147,12 +187,49 @@ class Deleteblog(Blogpage):
 		blog_id = blog_id[4:]
 		if not self.blog_author(blog_id):
 			self.render_template('error_user.html')
-		blog = db.get(blog_id)
-		if not blog:
-			self.render_template('error_link.html')
-		blog.delete()
-		time.sleep(0.4)
-		self.redirect('/')
+		else:
+			blog = db.get(blog_id)
+			if not blog:
+				self.render_template('error_link.html')
+			else:
+				blog.delete()
+				time.sleep(0.4)
+				self.redirect('/')
+class Updatecomment(Blogpage):
+	def get(self):
+		id = self.request.get('comment_id')
+		comment = Commentdb.get(id)
+		if not self.user_obj or self.user_obj.username != comment.author:
+			self.write('Looks like you are either not logged in or authorized to edit this comment. <BR>')
+			self.write("Click <a href = '/'>here</a> to go back to the main page")
+		else:
+			self.render_template('post_comment.html',
+				old_comment = comment.comment, comment_key= id)
+	def post(self):
+		commenttext = self.request.get('new_comment')
+		if not commenttext:
+			error = "Comments can't be blank"
+			self.render_template('post_comment.html', error = error)
+		else:
+			id = self.request.get('comment_id')
+			comment = Commentdb.get(id)
+			comment.comment = commenttext
+			comment.put()
+			time.sleep(0.4)
+			redirect_blog_link = '/show'+str(comment.parent().key())
+			self.redirect(redirect_blog_link)
+class Deletecomment(Blogpage):
+	def post(self):
+		id = self.request.get('comment_id')
+		comment = Commentdb.get(id)
+		if not self.user_obj or self.user_obj.username !=comment.author:
+			self.write('Looks like you are either not logged in or authorized to edit this comment. <BR>')
+			self.write("Click <a href = '/'>here</a> to go back to the main page")
+		else:
+			comment.delete()
+			time.sleep(0.3)
+			redirect_blog_link = '/show'+str(comment.parent().key())
+			self.redirect(redirect_blog_link)
 class Signup(Blogpage):
 	def get(self):
 		self.render_template('signup.html', user = self.user_obj)
@@ -206,6 +283,8 @@ routes = [('/',Mainpage),
 		  ('/(show[a-zA-Z0-9-_]+)',Displayblog),
 		  ('/(edit[a-zA-Z0-9-_]+)',Editblog),
 		  ('/(kill[a-zA-Z0-9-_]+)',Deleteblog),
+		  ('/updatecomment', Updatecomment),
+		  ('/deletecomment',Deletecomment),
 		  ('/signup',Signup),
 		  ('/createblog',Createblog),
 		  ('/badcookie',Badcookie),
