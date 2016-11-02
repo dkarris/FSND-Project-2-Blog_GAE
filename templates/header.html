@@ -4,18 +4,53 @@
 <html>
 <html land="en">
 <style type="text/css" link = "/css/main.css">
+
+body {
+	font-family: sans-serif;
+}
+textarea {
+	width: 500px;
+	height:100px;
+	font-family: 15px;
+	font-family: monospace;
+	border-radius: 5px;
+	border-color: red;
+}
+
+input[type="text"] [type="password"]{
+	width: 200px;
+	font-size:15px;
+	padding: 2px;
+}
+input[type="submit"]{
+	font-size: 20px;
+}
+#blogname, #login {
+	border: 2px solid;
+	text-align: center;
+}
 #blogname {
-	color: green;
 	background-color: silver;
 	width: 70%;
 	text-align:center;
 }	
 #login {
 	width: 30%;
-	background-color: gray;
-}
+	padding-top:10px;
+	}
 #header {
 	display: flex;
+}
+.blog_txt {
+	display: inline-flex;
+	
+}
+.error {
+	color:red;
+}
+.label {
+	text-align: right;
+	font-size: 17px;
 }
 </style>
 <head>
@@ -24,15 +59,16 @@
 <body>
 	<div id = "header">
 		<div id = "blogname">
-			<H3> Blog by @DK </H3>
+			<H3> <a href='/'>This is Blog for Project 2 FSND</a></H3>
 		</div>
 		<div id = "login">
 		{%if user == None %}
 			<a href="/login"> login </a> <BR>
 			<a href="/signup"> sign up </a>
 		{% else %}
-			logged as {{user.username}}
+			Logged as {{user.username}}<BR>
 			<a href="/logout"> Click here to log out</a>
+			<INPUT TYPE="button" Value ="Create new blog" onClick="parent.location='/createblog'">
 		{% endif %}
 		</div>
 	</div>

@@ -10,13 +10,14 @@ Comments:
 <hr>
  	{% for comment in comments %}
  		<form method="post" name="edit_comment">
- 			<div>
+ 			<div id="comment">
 				<input type="hidden" name="comment_id" value="{{comment.key()}}"> 
 				User: {{comment.author}} <BR>
 				Comment: {{comment.comment}} <BR>
-				<label>created:</label>{{comment.created}} 
+				<label>Last modified on: </label>{{comment.modified.strftime('%Y-%m-%d %H:%M')}} 
 				<button type="submit" formaction="/updatecomment" formmethod="get">Edit</button>
 				<button type="submit" formaction = "/deletecomment">Delete comment</button>
+				<hr>
 			</div>
 		</form>
 	{% endfor %}

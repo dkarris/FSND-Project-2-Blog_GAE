@@ -21,9 +21,10 @@ SECRET = 'MySeCR5tMe55a6E'
 
 # DB functions to retrieve user/blog/likes records
 
-def get_blog_user(blog_id):
+def get_blog_user(blog_key):
 	''' returns user who created the blog record with blog_id'''
-	user_id = Blogdb.get_by_id(blog_id).key.parent()
+	user_id = Blogdb.get(blog_key).parent()
+	#user_id = Blogdb.get_by_id(blog_id).key.parent()
 	return user_id
 
 def get_user_obj(username=None):
@@ -171,11 +172,11 @@ class Displayblog(Blogpage):
 		blog_id = blog_id[4:] #delete show from the parameter
 		blog = db.get(blog_id)
 		if not blog:
-			self.write('You are not logged in! <BR>')
+			self.write('Error. Something wrong with blog link. Please try again! <BR>')
 			self.write('Please <a href="/">click here</a> to go the main page')
 		else:
 			#load comments
-			comments = Commentdb.all().ancestor(blog)
+			comments = Commentdb.all().ancestor(blog).filter('comment_type =','comment').order('-modified')
 			self.render_template('displayblog.html', user = self.user_obj,
 				blogtitle = blog.blogtitle, blogtext = blog.blogtext,
 				blog_id = blog_id, comments = comments)
@@ -185,7 +186,7 @@ class Displayblog(Blogpage):
 		if self.user_obj:
 			blog_id = blog_id[4:]
 			blog = db.get(blog_id)
-			comments = Commentdb.all().ancestor(blog)
+			comments = Commentdb.all().ancestor(blog).filter('comment_type =','comment').order('-modified')
 			commenttext = self.request.get('new_comment')
 			if not commenttext:
 				error = "Comments can't be blank"
@@ -194,7 +195,8 @@ class Displayblog(Blogpage):
 				blog_id = blog_id, comments = comments, error = error)
 			else:
 				comment = Commentdb (comment_type = 'comment',
-				 comment = commenttext, author = self.user_obj.username,parent = blog)
+				 					comment = commenttext, author = self.user_obj.username,
+				 					parent = blog)
 				comment.put()
 				time.sleep(0.4)
 				self.render_template('displayblog.html', user = self.user_obj,
@@ -391,12 +393,14 @@ class Badcookie(Blogpage):
 class Mainpage(Blogpage):
 	def get(self):
 		likes = []
-		users = get_user_obj()
-		blogs = get_all_blogs()
+		authors = []
+		blogs = get_all_blogs().order('-modified')
 		for blog in blogs:
+			authors.append(get_blog_user(blog.key()).username)
 			likes.append(get_likes(blog))
-		self.render_template('main.html', users = users, blogs = blogs,
-		 user = self.user_obj, likes =likes)
+		self.render_template('main.html', blogs = blogs,
+		 					user = self.user_obj,
+		 					likes =likes, author =authors)
 routes = [('/',Mainpage),
 		  ('/(show[a-zA-Z0-9-_]+)',Displayblog),
 		  ('/(edit[a-zA-Z0-9-_]+)',Editblog),

@@ -2,10 +2,59 @@
 <H4> Please enter your username and password. </H4>
 <form method="post">
 	<div id = "signup_table">
-		<label>Username</label><input type="text" name="username" value="{{username}}"> {{error_username}}<BR>
-		<label>Password</label><input type="password" name="password"> {{error_password}}<BR>
-		<label>Verify password</label><input type="password" name="verify">{{error_verify}}<BR>
-		<label>Email</label><input type="text" name="email" value="{{email}}">{{error_email}}<BR>
+		<table>
+			<tr>
+				<td class="label">
+					Username
+				</td>
+				<td>
+					<input type="text" name="username" value="{{username}}">
+				</td>
+				<td class="error">
+				 	{{error_username}}
+				<td>
+			</tr>
+
+			<tr>
+				<td class="label">
+				 	Password
+				</td>
+				<td>
+					<input type="password" name="password"> 
+				</td>
+				<td class="error">
+					{{error_password}}
+				</td>
+			</tr>
+			<tr>
+				<td class="label">
+					Verify password
+				</td>
+				<td>
+					<input type="password" name="verify">
+				</td>
+				<td class="error">
+					{{error_verify}}
+				</td>
+			</tr>
+			
+			<tr>
+				<td class="label">
+					Email
+				</td>
+				<td>
+					<input type="text" name="email" value="{{email}}">
+				</td>
+				<td class="error">
+					{{error_email}}
+				</td>
+			</tr>
+			<tr>
+				<td>
+				</td>
+				<td>
+					<input type="submit" name="submit_signup">
+				</td>
+		</table>
 	</div>
-	<input type="submit" name="submit_signup">
 </form> 
