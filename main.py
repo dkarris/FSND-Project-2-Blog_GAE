@@ -7,15 +7,14 @@ import time
 import hmac
 import hashlib
 from google.appengine.ext import db
-# This is my magical SQL string
-# SELECT * FROM blog_db WHERE __key__ HAS ANCESTOR Key(`user_db`,'testuser')
-#Jinja2 environment setup
+
+# Jinja2 environment setup
 template_dir = os.getcwd()+'/templates'
 loader = jinja2.FileSystemLoader(template_dir)
-jinja2_env = jinja2.Environment(loader = loader, trim_blocks = True,
-								autoescape = True)
-#Note. Should later clear why lstrip_blocks = True doesn't work.
-#Hashing block begin
+jinja2_env =jinja2.Environment(loader =loader, trim_blocks =True,
+								autoescape =True)
+# Note. Should later clear why lstrip_blocks = True doesn't work.
+# Hashing block begin
 
 SECRET = 'MySeCR5tMe55a6E'
 
@@ -37,6 +36,12 @@ def get_all_blogs(username = None):
 		key = db.Key.from_path('Userdb',Userdb.all().filter('username =', username).get().key().id())
  		bloglist = Blogdb.all().ancestor(key)
 		return bloglist
+def get_likes(blog):
+	''' returns number of likes for blog class'''
+	likes = Commentdb.all().ancestor(blog).filter("comment_type =",'vote').count()
+	if not likes:
+		likes = 0
+	return likes
 #Cookies functions
 def make_secure_val(val):
 		return '%s|%s' % (val, hmac.new(SECRET, val).hexdigest())
@@ -50,12 +55,10 @@ class Userdb(db.Model):
 	password = db.StringProperty(required = True)
 	email = db.StringProperty()
 	created = db.DateTimeProperty(auto_now_add = True)
-
 class Blogdb(db.Model):
 	blogtitle = db.StringProperty(required = True)
 	blogtext = db.TextProperty()
 	created = db.DateTimeProperty(auto_now_add = True)
-
 class Commentdb(db.Model):
 	comment_type = db.StringProperty(required = True) #Will store votes or comments values.
 	comment = db.TextProperty(required = True)
@@ -192,6 +195,11 @@ class Deleteblog(Blogpage):
 			if not blog:
 				self.render_template('error_link.html')
 			else:
+				#delete all child comments
+				comments = Commentdb.all().ancestor(blog)
+				for comment in comments:
+					comment.delete()
+				#delete blog 
 				blog.delete()
 				time.sleep(0.4)
 				self.redirect('/')
@@ -230,6 +238,39 @@ class Deletecomment(Blogpage):
 			time.sleep(0.3)
 			redirect_blog_link = '/show'+str(comment.parent().key())
 			self.redirect(redirect_blog_link)
+class Likepost(Blogpage):
+	def get(self, blog_id):
+		blog_id = blog_id[4:] # clear key
+		if self.blog_author(blog_id):
+			self.write('Seems that you are the one who wrote this.<BR>')
+			self.write("You can't like your own post <BR>")
+			self.write("Click <a href='/'>here</a> to go to the main page")
+		else:
+			blog =db.get(blog_id)
+			like_record =Commentdb.all().filter('comment_type =','vote').filter('author =',
+			 self.user_obj.username).ancestor(blog).get()
+			if like_record:
+				self.write('You already liked this post!<BR>')
+				self.write("Click <a href='/'>here</a> to go to the main page")
+			else:
+				like =Commentdb(comment_type ='vote', comment ='vote',
+				author =self.user_obj.username, parent =blog)
+				like.put()
+				time.sleep(0.2)
+				self.redirect('/')
+class Unlikepost(Blogpage):
+	def get(self, blog_id):
+		blog_id =blog_id[6:] # Dislike comment key is 'dislike' - 6 chars
+		blog = db.get(blog_id)
+		like_record =Commentdb.all().filter('comment_type =','vote').filter('author =',
+			 self.user_obj.username).ancestor(blog).get()
+		if not like_record:
+			self.write("You haven't liked this post. Nothing to unlike <BR>")
+			self.write("Click <a href='/'>here</a> to go to the main page")
+		else:
+			like_record.delete()
+			time.sleep(0.2)
+			self.redirect('/')
 class Signup(Blogpage):
 	def get(self):
 		self.render_template('signup.html', user = self.user_obj)
@@ -265,24 +306,29 @@ class Login(Blogpage):
 class Logout(Blogpage):
 	def get(self):
 		self.clear_cookie()
-		self.response.write('You have been successfully logged out <BR>')
-		self.response.write("Please go to '/' or 'login'")
+		self.write('You have been successfully logged out <BR>')
+		self.write("Please go to '/' or 'login'")
 class Badcookie(Blogpage):
 	def get(self):
 		self.clear_cookie()
-		self.response.write('Bad cookie. Possible cookie forging detected')
-		self.response.write('Suspicious Cookie has been deleted from this client')
-		self.response.write('<BR>Please use /signup or login pages to enter')
+		self.write('Bad cookie. Possible cookie forging detected')
+		self.write('Suspicious Cookie has been deleted from this client')
+		self.write('<BR>Please use /signup or login pages to enter')
 class Mainpage(Blogpage):
 	def get(self):
+		likes = []
 		users = get_user_obj()
 		blogs = get_all_blogs()
+		for blog in blogs:
+			likes.append(get_likes(blog))
 		self.render_template('main.html', users = users, blogs = blogs,
-			 user = self.user_obj)
+		 user = self.user_obj, likes =likes)
 routes = [('/',Mainpage),
 		  ('/(show[a-zA-Z0-9-_]+)',Displayblog),
 		  ('/(edit[a-zA-Z0-9-_]+)',Editblog),
 		  ('/(kill[a-zA-Z0-9-_]+)',Deleteblog),
+		  ('/(like[a-zA-Z0-9-_]+)',Likepost),
+		  ('/(unlike[a-zA-Z0-9-_]+)',Unlikepost),
 		  ('/updatecomment', Updatecomment),
 		  ('/deletecomment',Deletecomment),
 		  ('/signup',Signup),

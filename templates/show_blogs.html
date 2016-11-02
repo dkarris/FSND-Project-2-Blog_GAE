@@ -1,10 +1,19 @@
-<h3>  Lets put some Blogs here (with links!!!) </h3>
+<h3>  Recent blogs </h3>
+{% set x=0 %}
 {%- for blog in blogs %}
 	{% set urlkey = 'show' + blog.key()|string %}
 	<a	href="{{urlkey}}">{{blog.blogtitle}}</a> 
 	<br>
 	{{blog.blogtext}} 
 	<BR>
+	{% set likeurl='like'+blog.key()|string %}
+	{% set unlikeurl='unlike'+blog.key()|string %}
+	
+	Likes: {{likes[x]}}
+	{% set x=x+1 %}
+	 <BR> <a href="{{likeurl}}">Like</a> 
+	<a href="{{unlikeurl}}">Unlike</a> 
+	<BR>
 {%- endfor %}
 <hr> 
-Now repeat with the links <BR>
+
