@@ -6,6 +6,7 @@ import jinja2
 import time
 import hmac
 import hashlib
+from string import letters
 from google.appengine.ext import db
 
 # Jinja2 environment setup
@@ -13,22 +14,25 @@ template_dir = os.getcwd()+'/templates'
 loader = jinja2.FileSystemLoader(template_dir)
 jinja2_env =jinja2.Environment(loader =loader, trim_blocks =True,
 								autoescape =True)
-# Note. Should later clear why lstrip_blocks = True doesn't work.
+
 # Hashing block begin
 
 SECRET = 'MySeCR5tMe55a6E'
 
-# DB functions to retrieve user and blog
+# DB functions to retrieve user/blog/likes records
+
 def get_blog_user(blog_id):
 	''' returns user who created the blog record with blog_id'''
 	user_id = Blogdb.get_by_id(blog_id).key.parent()
 	return user_id
+
 def get_user_obj(username=None):
 		''' Returns all users  object or object with username'''
 		if username:
 			return Userdb.all().filter('username =', username)
 		else:
 			return Userdb.all()
+
 def get_all_blogs(username = None):
 	if not username:
 		return Blogdb.all()
@@ -36,35 +40,76 @@ def get_all_blogs(username = None):
 		key = db.Key.from_path('Userdb',Userdb.all().filter('username =', username).get().key().id())
  		bloglist = Blogdb.all().ancestor(key)
 		return bloglist
+
 def get_likes(blog):
 	''' returns number of likes for blog class'''
 	likes = Commentdb.all().ancestor(blog).filter("comment_type =",'vote').count()
 	if not likes:
 		likes = 0
 	return likes
-#Cookies functions
+
+# Cookies functions
+
 def make_secure_val(val):
 		return '%s|%s' % (val, hmac.new(SECRET, val).hexdigest())
+
 def check_secure_val(secure_val):
 	val = secure_val.split('|')[0]
 	if secure_val == make_secure_val(val):
 		return val
+
+# Password hashing functions
+
+def make_salt(length = 5):
+    return ''.join(random.choice(letters) for x in xrange(length))
+
+def make_pw_hash(name, pw, salt = None):
+    if not salt:
+        salt = make_salt()
+    h = hashlib.sha256(name + pw + salt).hexdigest()
+    return '%s|%s' % (salt, h)
+
+def valid_pw(name, password, h):
+    salt = h.split('|')[0]
+    return h == make_pw_hash(name, password, salt)
+
+# Regex validation functions:
+
+USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
+def valid_username(username):
+    return username and USER_RE.match(username)
+
+PASS_RE = re.compile(r"^.{3,20}$")
+def valid_password(password):
+    return password and PASS_RE.match(password)
+
+EMAIL_RE  = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
+def valid_email(email):
+    return not email or EMAIL_RE.match(email)
+
 #DB classes
+
 class Userdb(db.Model):
-	username = db.StringProperty(required = True)
-	password = db.StringProperty(required = True)
-	email = db.StringProperty()
-	created = db.DateTimeProperty(auto_now_add = True)
+	username =db.StringProperty(required = True)
+	password =db.StringProperty(required = True)
+	email =db.StringProperty()
+	created =db.DateTimeProperty(auto_now_add = True)
+
 class Blogdb(db.Model):
-	blogtitle = db.StringProperty(required = True)
-	blogtext = db.TextProperty()
-	created = db.DateTimeProperty(auto_now_add = True)
+	blogtitle =db.StringProperty(required = True)
+	blogtext =db.TextProperty()
+	created =db.DateTimeProperty(auto_now_add = True)
+	modified =db.DateTimeProperty(auto_now =True)
+
 class Commentdb(db.Model):
 	comment_type = db.StringProperty(required = True) #Will store votes or comments values.
 	comment = db.TextProperty(required = True)
 	author = db.StringProperty(required = True)
 	created = db.DateTimeProperty(auto_now_add = True)
+	modified =db.DateTimeProperty(auto_now =True)
+
 #Web page classes
+
 class Blogpage(webapp2.RequestHandler):
 	''' This default class for displaying blog pages'''
 	def __init__(self, *args, **kwargs):
@@ -103,6 +148,7 @@ class Blogpage(webapp2.RequestHandler):
 		return True
 	def clear_cookie(self):
 		self.response.headers.add_header('Set-Cookie','name=; Path=/')
+
 class Createblog(Blogpage):
 	def get(self):
 		#Check if logged in
@@ -119,6 +165,7 @@ class Createblog(Blogpage):
 		blog_record.put()
 		time.sleep(0.4)
 		self.redirect('/')		
+
 class Displayblog(Blogpage):
 	def get(self, blog_id):
 		blog_id = blog_id[4:] #delete show from the parameter
@@ -156,6 +203,7 @@ class Displayblog(Blogpage):
 		else:
 			self.write('Sorry, you must be logged in order to comment records <BR>')
 			self.write('Please <a href="/">click here</a> to go to the main page')
+
 class Editblog(Blogpage):
 	def get(self, blog_id):
 		blog_id = blog_id[4:] # clear key
@@ -185,6 +233,7 @@ class Editblog(Blogpage):
 			error ='Either blog title or blog text are empty'
 			self.render_template('editblog.html', user = self.user_obj,
 				blogtitle = blogtitle, blogtext=blogtext, blog_id= blog_id, error = error)
+
 class Deleteblog(Blogpage):
 	def get(self, blog_id):
 		blog_id = blog_id[4:]
@@ -203,6 +252,7 @@ class Deleteblog(Blogpage):
 				blog.delete()
 				time.sleep(0.4)
 				self.redirect('/')
+
 class Updatecomment(Blogpage):
 	def get(self):
 		id = self.request.get('comment_id')
@@ -226,6 +276,7 @@ class Updatecomment(Blogpage):
 			time.sleep(0.4)
 			redirect_blog_link = '/show'+str(comment.parent().key())
 			self.redirect(redirect_blog_link)
+
 class Deletecomment(Blogpage):
 	def post(self):
 		id = self.request.get('comment_id')
@@ -238,6 +289,7 @@ class Deletecomment(Blogpage):
 			time.sleep(0.3)
 			redirect_blog_link = '/show'+str(comment.parent().key())
 			self.redirect(redirect_blog_link)
+
 class Likepost(Blogpage):
 	def get(self, blog_id):
 		blog_id = blog_id[4:] # clear key
@@ -258,6 +310,7 @@ class Likepost(Blogpage):
 				like.put()
 				time.sleep(0.2)
 				self.redirect('/')
+
 class Unlikepost(Blogpage):
 	def get(self, blog_id):
 		blog_id =blog_id[6:] # Dislike comment key is 'dislike' - 6 chars
@@ -271,43 +324,64 @@ class Unlikepost(Blogpage):
 			like_record.delete()
 			time.sleep(0.2)
 			self.redirect('/')
+
 class Signup(Blogpage):
 	def get(self):
 		self.render_template('signup.html', user = self.user_obj)
 	def post(self):
-		username = self.request.get('username')
-		password = self.request.get('password')
-		verify = self.request.get('verify')
-		email = self.request.get('email')
-# Later put here username and password regex validation
-		regex_validation = True
-		if not regex_validation:
-#Later insert handler for username/password resubmission
-			pass
+		error =False
+		self.username = self.request.get('username')
+		self.password = self.request.get('password')
+		self.verify = self.request.get('verify')
+		self.email = self.request.get('email')
+		params = dict(username =self.username, email=self.email)
+		if get_user_obj(self.username).get():
+			params['error_username'] ="This user already exists"
+			error =True
 		else:
-			user_record = Userdb(username = username, password = password, email = email)
+			if not valid_username(self.username):
+				params['error_username'] ="That's not a valid username"
+				error =True
+			if not valid_password(self.password):
+				params['error_password'] ="Password is not valid"
+				error =True
+			if self.password != self.verify:
+				params['error_verify'] ="Passwords do not match"
+				error =True
+			if not valid_email(self.email):
+				params['error_email'] ="Email is not valid"
+				error =True
+		if not error: 
+			self.hashed_password =make_pw_hash(self.username,self.password)
+			user_record = Userdb(username = self.username, 
+								 password = self.hashed_password, email = self.email)
 			user_record.put()
-			self.set_secure_cookie('name',str(username))
+			self.set_secure_cookie('name',str(self.username))
 			time.sleep(0.4)
 			self.redirect('/')
+		else:
+			self.render_template('signup.html', **params)
 class Login(Blogpage):
 	def get(self):
 		self.render_template('login.html', user = self.user_obj)
 	def post(self):
-		username = self.request.get('username')
-		password = self.request.get('password')
-		if get_user_obj(username).get(): # user exists check password
-#password checking block here
-			self.set_secure_cookie('name', str(username))
-			self.redirect('/')
+		self.username = self.request.get('username')
+		self.password = self.request.get('password')
+		if get_user_obj(self.username).get(): # user exists check password
+			self.hashed_password =get_user_obj(self.username).get().password
+			if valid_pw(self.username,self.password,self.hashed_password):
+				self.set_secure_cookie('name', str(self.username))
+				self.redirect('/')
+			else:
+				self.error ="Password doesn't match the one that we have"
 		else:
-			msg = 'No user found'
-			self.render_template('login.html', error = msg)
+			self.error = 'No user found'
+		self.render_template('login.html', error = self.error)
 class Logout(Blogpage):
 	def get(self):
 		self.clear_cookie()
 		self.write('You have been successfully logged out <BR>')
-		self.write("Please go to '/' or 'login'")
+		self.write("Please go to <a href='/'>main page</a> or <a href='/login'>login page</a")
 class Badcookie(Blogpage):
 	def get(self):
 		self.clear_cookie()
