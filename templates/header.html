@@ -17,8 +17,8 @@ textarea {
 	border-color: red;
 }
 
-input[type="text"] [type="password"]{
-	width: 200px;
+input[type="text"],[type="password"]{
+	width: 400px;
 	font-size:15px;
 	padding: 2px;
 }
@@ -36,7 +36,7 @@ input[type="submit"]{
 }	
 #login {
 	width: 30%;
-	padding-top:10px;
+	padding:3px;
 	}
 #header {
 	display: flex;
@@ -67,7 +67,7 @@ input[type="submit"]{
 			<a href="/signup"> sign up </a>
 		{% else %}
 			Logged as {{user.username}}<BR>
-			<a href="/logout"> Click here to log out</a>
+			<a href="/logout"> Click here to log out</a> <BR>
 			<INPUT TYPE="button" Value ="Create new blog" onClick="parent.location='/createblog'">
 		{% endif %}
 		</div>
