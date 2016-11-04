@@ -1,0 +1,47 @@
+body {
+	font-family: sans-serif;
+}
+textarea {
+	width: 500px;
+	height:100px;
+	font-family: 15px;
+	font-family: monospace;
+	border-radius: 5px;
+	border-color: red;
+}
+
+input[type="text"],[type="password"]{
+	width: 400px;
+	font-size:15px;
+	padding: 2px;
+}
+input[type="submit"]{
+	font-size: 20px;
+}
+#blogname, #login {
+	border: 2px solid;
+	text-align: center;
+}
+#blogname {
+	background-color: silver;
+	width: 70%;
+	text-align:center;
+}	
+#login {
+	width: 30%;
+	padding:3px;
+	}
+#header {
+	display: flex;
+}
+.blog_txt {
+	display: inline-flex;
+	
+}
+.error {
+	color:red;
+}
+.label {
+	text-align: right;
+	font-size: 17px;
+}
