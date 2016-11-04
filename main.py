@@ -211,16 +211,17 @@ class Createblog(Blogpage):
 class Displayblog(Blogpage):
     def get(self, blog_id):
         blog_id = blog_id[4:]
-        blog = db.get(blog_id)
-        if blog:
+        try:
+            blog = db.get(blog_id)
+            if blog:
         # load comments
-            comments = Commentdb.all().ancestor(blog).filter(
-                'comment_type =', 'comment').order('-modified')
-            self.render_template(
-                'displayblog.html', user=self.user_obj,
-                blogtitle=blog.blogtitle, blogtext=blog.blogtext,
-                blog_id=blog_id, comments=comments)
-        else:
+                comments = Commentdb.all().ancestor(blog).filter(
+                    'comment_type =', 'comment').order('-modified')
+                self.render_template(
+                    'displayblog.html', user=self.user_obj,
+                    blogtitle=blog.blogtitle, blogtext=blog.blogtext,
+                    blog_id=blog_id, comments=comments)
+        except:
             self.write('Error. Something wrong with blog link.' +
                        ' Please try again! <BR>')
             self.write('Please <a href="/">click here</a> to go the main page')
