@@ -210,17 +210,17 @@ class Createblog(Blogpage):
 
 class Displayblog(Blogpage):
     def get(self, blog_id):
-        blog_id = blog_id[4:]  # delete show from the parameter
-        try:
-            blog = db.get(blog_id)
-            # load comments
+        blog_id = blog_id[4:]
+        blog = db.get(blog_id)
+        if blog:
+        # load comments
             comments = Commentdb.all().ancestor(blog).filter(
                 'comment_type =', 'comment').order('-modified')
             self.render_template(
                 'displayblog.html', user=self.user_obj,
                 blogtitle=blog.blogtitle, blogtext=blog.blogtext,
                 blog_id=blog_id, comments=comments)
-        except:
+        else:
             self.write('Error. Something wrong with blog link.' +
                        ' Please try again! <BR>')
             self.write('Please <a href="/">click here</a> to go the main page')
@@ -362,35 +362,47 @@ class Likepost(Blogpage):
             self.write("You can't like your own post <BR>")
             self.write("Click <a href='/'>here</a> to go to the main page")
         else:
-            blog = db.get(blog_id)
-            like_record = Commentdb.all().filter(
-                'comment_type =', 'vote').filter(
-                    'author =', self.user_obj.username).ancestor(blog).get()
-            if like_record:
-                self.write('You already liked this post!<BR>')
+            if not self.user_obj:
+                self.write('You must login to like posts!<BR>')
                 self.write("Click <a href='/'>here</a> to go to the main page")
             else:
-                like = Commentdb(comment_type='vote', comment='vote',
-                                 author=self.user_obj.username, parent=blog)
-                like.put()
-                time.sleep(0.2)
-                self.redirect('/')
+                blog = db.get(blog_id)
+                like_record = Commentdb.all().filter(
+                    'comment_type =', 'vote').filter(
+                        'author =', self.user_obj.username).ancestor(
+                            blog).get()
+                if like_record:
+                    self.write('You already liked this post!<BR>')
+                    self.write("Click <a href='/'>here</a> to go to" +
+                               "the main page")
+                else:
+                    like = Commentdb(comment_type='vote', comment='vote',
+                                     author=self.user_obj.username,
+                                     parent=blog)
+                    like.put()
+                    time.sleep(0.2)
+                    self.redirect('/')
 
 
 class Unlikepost(Blogpage):
     def get(self, blog_id):
-        blog_id = blog_id[6:]  # Dislike comment key is 'dislike' - 6 chars
-        blog = db.get(blog_id)
-        like_record = Commentdb.all().filter(
-            'comment_type =', 'vote').filter(
-                'author =', self.user_obj.username).ancestor(blog).get()
-        if not like_record:
-            self.write("You haven't liked this post. Nothing to unlike <BR>")
+        if not self.user_obj:
+            self.write('You must login to unlike posts!<BR>')
             self.write("Click <a href='/'>here</a> to go to the main page")
         else:
-            like_record.delete()
-            time.sleep(0.2)
-            self.redirect('/')
+            blog_id = blog_id[6:]  # Dislike comment key is 'dislike' - 6 chars
+            blog = db.get(blog_id)
+            like_record = Commentdb.all().filter(
+                'comment_type =', 'vote').filter(
+                    'author =', self.user_obj.username).ancestor(blog).get()
+            if not like_record:
+                self.write("You haven't liked this post." +
+                           " Nothing to unlike <BR>")
+                self.write("Click <a href='/'>here</a> to go to the main page")
+            else:
+                like_record.delete()
+                time.sleep(0.2)
+                self.redirect('/')
 
 
 class Signup(Blogpage):
