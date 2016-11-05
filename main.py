@@ -10,7 +10,8 @@ from string import letters
 from google.appengine.ext import db
 
 # Jinja2 environment setup
-# The following function replaces \n with <br> tage
+
+# The following function replaces \n with <br> tag.
 # Borrowed from udacity forums.
 
 
@@ -36,11 +37,11 @@ def get_blog_user(blog_key):
 
 
 def get_user_obj(username=None):
-        ''' Returns all users  object or object with username'''
-        if username:
-            return Userdb.all().filter('username =', username)
-        else:
-            return Userdb.all()
+    ''' Returns all users  object or object with username'''
+    if username:
+        return Userdb.all().filter('username =', username)
+    else:
+        return Userdb.all()
 
 
 def get_all_blogs(username=None):
@@ -66,7 +67,7 @@ def get_likes(blog):
 
 
 def make_secure_val(val):
-        return '%s|%s' % (val, hmac.new(SECRET, val).hexdigest())
+    return '%s|%s' % (val, hmac.new(SECRET, val).hexdigest())
 
 
 def check_secure_val(secure_val):
@@ -188,69 +189,97 @@ class Blogpage(webapp2.RequestHandler):
     def clear_cookie(self):
         self.response.headers.add_header('Set-Cookie', 'name=; Path=/')
 
+    def check_valid_record(self, record_id, db_name):
+        ''' Checks if record with record_id exists in db_name datastore object
+            returns false if record does not exist '''
+        try:
+            record_id = db_name.get(record_id)
+            return True
+        except:
+            return False
+
 
 class Createblog(Blogpage):
     def get(self):
         # Check if logged in
         if not self.user_obj:
             self.write('You are not logged in! <BR>')
-            self.write('Please <a href="/">click here</a> to go the main page')
+            self.write(
+                'Please <a href="/">click here</a> to go to the main page')
         else:
             self.render_template('createblog.html', user=self.user_obj)
 
     def post(self):
-        blogtitle = self.request.get('blogtitle')
-        blogtext = self.request.get('blogtext')
-        blog_record = Blogdb(parent=self.user_obj, blogtitle=blogtitle,
-                             blogtext=blogtext)
-        blog_record.put()
-        time.sleep(0.4)
-        self.redirect('/')
+        if not self.user_obj:
+            self.write('You are not logged in! <BR>')
+            self.write(
+                'Please <a href="/">click here</a> to go to the main page')
+        else:
+            blogtitle = self.request.get('blogtitle')
+            blogtext = self.request.get('blogtext')
+            if blogtitle and blogtext:
+                blog_record = Blogdb(parent=self.user_obj, blogtitle=blogtitle,
+                                     blogtext=blogtext)
+                blog_record.put()
+                time.sleep(0.4)
+                self.redirect('/')
+            else:
+                error = 'Either blog title or blog text are empty'
+                self.render_template(
+                    'createblog.html', user=self.user_obj, blogtitle=blogtitle,
+                    blogtext=blogtext, error=error)
 
 
 class Displayblog(Blogpage):
     def get(self, blog_id):
         blog_id = blog_id[4:]
-        try:
+        if self.check_valid_record(blog_id, Blogdb):
             blog = db.get(blog_id)
-            if blog:
-        # load comments
-                comments = Commentdb.all().ancestor(blog).filter(
-                    'comment_type =', 'comment').order('-modified')
-                self.render_template(
-                    'displayblog.html', user=self.user_obj,
-                    blogtitle=blog.blogtitle, blogtext=blog.blogtext,
-                    blog_id=blog_id, comments=comments)
-        except:
+            # load comments
+            blog = db.get(blog_id)
+            comments = Commentdb.all().ancestor(blog).filter(
+                'comment_type =', 'comment').order('-modified')
+            self.render_template(
+                'displayblog.html', user=self.user_obj,
+                blogtitle=blog.blogtitle, blogtext=blog.blogtext,
+                blog_id=blog_id, comments=comments)
+        else:
             self.write('Error. Something wrong with blog link.' +
                        ' Please try again! <BR>')
             self.write('Please <a href="/">click here</a> to go the main page')
 
     def post(self, blog_id):
         ''' we use post method for commentary posting, so need
-                define post method in display blog page as well '''
+                to define post method in display blog page as well '''
         if self.user_obj:
             blog_id = blog_id[4:]
-            blog = db.get(blog_id)
-            comments = Commentdb.all().ancestor(blog).filter(
-                'comment_type =', 'comment').order('-modified')
-            commenttext = self.request.get('new_comment')
-            if not commenttext:
-                error = "Comments can't be blank"
-                self.render_template('displayblog.html', user=self.user_obj,
-                                     blogtitle=blog.blogtitle,
-                                     blogtext=blog.blogtext, blog_id=blog_id,
-                                     comments=comments, error=error)
+            if self.check_valid_record(blog_id, Blogdb):
+                blog = db.get(blog_id)
+                comments = Commentdb.all().ancestor(blog).filter(
+                    'comment_type =', 'comment').order('-modified')
+                commenttext = self.request.get('new_comment')
+                if not commenttext:
+                    error = "Comments can't be blank"
+                    self.render_template(
+                        'displayblog.html', user=self.user_obj,
+                        blogtitle=blog.blogtitle,
+                        blogtext=blog.blogtext, blog_id=blog_id,
+                        comments=comments, error=error)
+                else:
+                    comment = Commentdb(
+                        comment_type='comment', comment=commenttext,
+                        author=self.user_obj.username, parent=blog)
+                    comment.put()
+                    time.sleep(0.4)
+                    self.render_template(
+                        'displayblog.html', user=self.user_obj,
+                        blogtitle=blog.blogtitle, blogtext=blog.blogtext,
+                        blog_id=blog_id, comments=comments)
             else:
-                comment = Commentdb(
-                    comment_type='comment', comment=commenttext,
-                    author=self.user_obj.username, parent=blog)
-                comment.put()
-                time.sleep(0.4)
-                self.render_template(
-                    'displayblog.html', user=self.user_obj,
-                    blogtitle=blog.blogtitle, blogtext=blog.blogtext,
-                    blog_id=blog_id, comments=comments)
+                self.write('Error. Something wrong with blog link.' +
+                           ' Please try again! <BR>')
+                self.write(
+                    'Please <a href="/">click here</a> to go the main page')
         else:
             self.write('Sorry, you must be logged in' +
                        ' order to comment blogs <BR>')
@@ -261,39 +290,48 @@ class Displayblog(Blogpage):
 class Editblog(Blogpage):
     def get(self, blog_id):
         blog_id = blog_id[4:]  # clear key
-        if not self.blog_author(blog_id):
-            self.render_template('error_user.html')
+        if self.check_valid_record(blog_id, Blogdb):
+            if not self.blog_author(blog_id):
+                self.render_template('error_user.html', user=self.user_obj)
+            else:
+                blog = db.get(blog_id)
+                self.render_template(
+                    'editblog.html', user=self.user_obj,
+                    blogtitle=blog.blogtitle, blogtext=blog.blogtext,
+                    blog_id=blog_id)
         else:
-            blog = db.get(blog_id)
-            if not blog:
-                self.render_template('error_link.html')
-            self.render_template(
-                'editblog.html', user=self.user_obj, blogtitle=blog.blogtitle,
-                blogtext=blog.blogtext, blog_id=blog_id)
+            self.write('Error. Something wrong with blog link.' +
+                       ' Please try again! <BR>')
+            self.write('Please <a href="/">click here</a> to go the main page')
 
     def post(self, blog_id):
-        blogtitle = self.request.get('blogtitle')
-        blogtext = self.request.get('blogtext')
         blog_id = blog_id[4:]
-        if not self.blog_author(blog_id):
-            self.write('Wrong user')
-        if blogtitle and blogtext:
-            blog = db.get(blog_id)
-            blog.blogtext = blogtext
-            blog.blogtitle = blogtitle
-            blog.put()
-            time.sleep(0.4)
-            self.redirect('/')
-        else:
-            error = 'Either blog title or blog text are empty'
-            self.render_template(
-                'editblog.html', user=self.user_obj, blogtitle=blogtitle,
-                blogtext=blogtext, blog_id=blog_id, error=error)
+        if self.check_valid_record(blog_id, Blogdb):
+            blogtitle = self.request.get('blogtitle')
+            blogtext = self.request.get('blogtext')
+            if not self.blog_author(blog_id):
+                self.write('Wrong user')
+            if blogtitle and blogtext:
+                blog = db.get(blog_id)
+                blog.blogtext = blogtext
+                blog.blogtitle = blogtitle
+                blog.put()
+                time.sleep(0.4)
+                self.redirect('/')
+            else:
+                error = 'Either blog title or blog text are empty'
+                self.render_template(
+                    'editblog.html', user=self.user_obj, blogtitle=blogtitle,
+                    blogtext=blogtext, blog_id=blog_id, error=error)
 
 
 class Deleteblog(Blogpage):
     def get(self, blog_id):
         blog_id = blog_id[4:]
+        if not self.check_valid_record(blog_id, Blogdb):
+            self.write('Error. Something wrong with blog link.' +
+                       ' Please try again! <BR>')
+            self.write('Please <a href="/">click here</a> to go the main page')
         if not self.blog_author(blog_id):
             self.render_template('error_user.html')
         else:
@@ -314,75 +352,106 @@ class Deleteblog(Blogpage):
 class Updatecomment(Blogpage):
     def get(self):
         id = self.request.get('comment_id')
-        comment = Commentdb.get(id)
-        if not self.user_obj or self.user_obj.username != comment.author:
-            self.write('Looks like you are either not' +
-                       'logged in or authorized to edit this comment. <BR>')
-            self.write("Click <a href = '/'>here</a> " +
-                       "to go back to the main page")
+        back_link = self.request.get('blog_id')
+        #  Check if id exists
+        if self.check_valid_record(id, Commentdb):
+            comment = Commentdb.get(id)
+            if not self.user_obj or self.user_obj.username != comment.author:
+                self.write('Looks like you are either not' +
+                           'logged in or authorized to edit this comment.<BR>')
+                self.write("Click <a href = '/'>here</a> " +
+                           "to go back to the main page")
+            else:
+                self.render_template(
+                    'post_comment.html', old_comment=comment.comment,
+                    comment_key=id)
         else:
-            self.render_template('post_comment.html',
-                                 old_comment=comment.comment, comment_key=id)
+            self.write("""Comment does not exist. Wrong comment link <BR>
+                       Click <a href="/%s">here <a/>to go back to display 
+                       blog""" % back_link)
 
     def post(self):
-        commenttext = self.request.get('new_comment')
-        if not commenttext:
-            error = "Comments can't be blank"
-            self.render_template('post_comment.html', error=error)
+        id = self.request.get('comment_id')
+        back_link = self.request.get('blog_id')
+        if self.check_valid_record(id, Commentdb):
+            commenttext = self.request.get('new_comment')
+            if not commenttext:
+                error = "Comments can't be blank"
+                self.render_template('post_comment.html', error=error)
+            else:
+                comment = Commentdb.get(id)
+                if comment.author == self.user_obj.username:
+                    comment.comment = commenttext
+                    comment.put()
+                    time.sleep(0.4)
+                    redirect_blog_link = '/show'+str(comment.parent().key())
+                    self.redirect(redirect_blog_link)
+                else:
+                    self.write('You are not the comment author <BR>')
+                    self.write(
+                        'Click <a href="/">here <a/>to go to the main page')
+
         else:
-            id = self.request.get('comment_id')
-            comment = Commentdb.get(id)
-            comment.comment = commenttext
-            comment.put()
-            time.sleep(0.4)
-            redirect_blog_link = '/show'+str(comment.parent().key())
-            self.redirect(redirect_blog_link)
+            self.write("""Comment does not exist. Wrong comment link <BR>
+                       Click <a href="/%s">here <a/>to
+                       go back to display blog""" % back_link)
 
 
 class Deletecomment(Blogpage):
     def post(self):
         id = self.request.get('comment_id')
-        comment = Commentdb.get(id)
-        if not self.user_obj or self.user_obj.username != comment.author:
-            self.write('Looks like you are either not logged in or' +
-                       'authorized to edit this comment. <BR>')
-            self.write("Click <a href = '/'>here</a>" +
-                       " to go back to the main page")
+        back_link = self.request.get('blog_id')
+        if self.check_valid_record(id, Commentdb):
+            comment = Commentdb.get(id)
+            if not self.user_obj or self.user_obj.username != comment.author:
+                self.write('Looks like you are either not logged in or' +
+                           'authorized to edit this comment. <BR>')
+                self.write("Click <a href = '/'>here</a>" +
+                           " to go back to the main page")
+            else:
+                comment.delete()
+                time.sleep(0.3)
+                redirect_blog_link = '/show'+str(comment.parent().key())
+                self.redirect(redirect_blog_link)
         else:
-            comment.delete()
-            time.sleep(0.3)
-            redirect_blog_link = '/show'+str(comment.parent().key())
-            self.redirect(redirect_blog_link)
+            self.write("""Comment does not exist. Wrong comment link <BR>
+                       Click <a href="/%s">here <a/>to 
+                       go back to display blog""" % back_link)
 
 
 class Likepost(Blogpage):
     def get(self, blog_id):
         blog_id = blog_id[4:]  # clear key
-        if self.blog_author(blog_id):
-            self.write('Seems that you are the one who wrote this.<BR>')
-            self.write("You can't like your own post <BR>")
-            self.write("Click <a href='/'>here</a> to go to the main page")
-        else:
-            if not self.user_obj:
-                self.write('You must login to like posts!<BR>')
+        if self.check_valid_record(blog_id, Blogdb):
+            if self.blog_author(blog_id):
+                self.write('Seems that you are the one who wrote this.<BR>')
+                self.write("You can't like your own post <BR>")
                 self.write("Click <a href='/'>here</a> to go to the main page")
             else:
-                blog = db.get(blog_id)
-                like_record = Commentdb.all().filter(
-                    'comment_type =', 'vote').filter(
-                        'author =', self.user_obj.username).ancestor(
-                            blog).get()
-                if like_record:
-                    self.write('You already liked this post!<BR>')
-                    self.write("Click <a href='/'>here</a> to go to" +
-                               "the main page")
+                if not self.user_obj:
+                    self.write('You must login to like posts!<BR>')
+                    self.write("Click <a href='/'>here</a> to" +
+                               'go to the main page')
                 else:
-                    like = Commentdb(comment_type='vote', comment='vote',
-                                     author=self.user_obj.username,
-                                     parent=blog)
-                    like.put()
-                    time.sleep(0.2)
-                    self.redirect('/')
+                    blog = db.get(blog_id)
+                    like_record = Commentdb.all().filter(
+                        'comment_type =', 'vote').filter(
+                            'author =', self.user_obj.username).ancestor(
+                                blog).get()
+                    if like_record:
+                        self.write('You already liked this post!<BR>')
+                        self.write("Click <a href='/'>here</a> to go to" +
+                                   " the main page")
+                    else:
+                        like = Commentdb(comment_type='vote', comment='vote',
+                                         author=self.user_obj.username,
+                                         parent=blog)
+                        like.put()
+                        time.sleep(0.2)
+                        self.redirect('/')
+        else:
+            self.write('Bad blog id. Please try again <BR>')
+            self.write("Click <a href='/'>here</a> to go to the main page")
 
 
 class Unlikepost(Blogpage):
@@ -392,18 +461,23 @@ class Unlikepost(Blogpage):
             self.write("Click <a href='/'>here</a> to go to the main page")
         else:
             blog_id = blog_id[6:]  # Dislike comment key is 'dislike' - 6 chars
-            blog = db.get(blog_id)
-            like_record = Commentdb.all().filter(
-                'comment_type =', 'vote').filter(
+            if self.check_valid_record(blog_id, Blogdb):
+                blog = db.get(blog_id)
+                like_record = Commentdb.all().filter(
+                    'comment_type =', 'vote').filter(
                     'author =', self.user_obj.username).ancestor(blog).get()
-            if not like_record:
-                self.write("You haven't liked this post." +
-                           " Nothing to unlike <BR>")
-                self.write("Click <a href='/'>here</a> to go to the main page")
+                if not like_record:
+                    self.write("You haven't liked this post." +
+                               " Nothing to unlike <BR>")
+                    self.write("Click <a href='/'>here</a> to " +
+                               "go to the main page")
+                else:
+                    like_record.delete()
+                    time.sleep(0.2)
+                    self.redirect('/')
             else:
-                like_record.delete()
-                time.sleep(0.2)
-                self.redirect('/')
+                self.write('Bad blog id. Please try again <BR>')
+                self.write("Click <a href='/'>here</a> to go to the main page")
 
 
 class Signup(Blogpage):

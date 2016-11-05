@@ -2,6 +2,15 @@
 {% include 'header.html' %}
 {% set blog_id_edit = 'edit'+blog_id %}
 {% set blog_id_delete = 'kill'+blog_id %}
+{% set blog_id_show = 'show'+blog_id %}
+
+{# 
+   blog_id_edit - pass link to button edit
+   blog_id_delete - pass link to button delete
+   blog_id_show - create a hidden field and pass the value to Updatecomment/delete
+   comment handlers. So that they could reference this page in their procedures
+#}
+
 
 Blog title: {{blogtitle}} <BR>
 Blog text: {{blogtext}} <BR><BR>
@@ -12,6 +21,7 @@ Comments:
  		<form method="post" name="edit_comment">
  			<div id="comment">
 				<input type="hidden" name="comment_id" value="{{comment.key()}}"> 
+				<input type="hidden" name="blog_id" value="{{blog_id_show}}">
 				User: {{comment.author}} <BR>
 				Comment: {{comment.comment| letitpass() | safe}} <BR>
 				<label>Last modified on: </label>{{comment.modified.strftime('%Y-%m-%d %H:%M')}} 
