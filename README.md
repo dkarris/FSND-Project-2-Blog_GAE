@@ -40,6 +40,14 @@ added addiitonal keywords like: 'blog', 'show'. etc, in the perm link, so that I
 
 Add bootstrap and mobile versions, JS and modals to improve usability.
 
+#### 11/07/2016 Implemented suggestions from Udacity after submitting the first version of the project 
+
+- Fixed security bugs
+- Refactored model and page handlers
+- Removed <table> tags from signin and login forms
+- Changed jinja template structure from using {% include %} to {% extends %}
+
+
 
 
 
