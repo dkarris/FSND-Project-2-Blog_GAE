@@ -130,6 +130,6 @@ class Mainpage(Blogpage):
         for blog in blogs:
             authors.append(self.get_blog_user(blog.key()).username)
             likes.append(self.get_likes(blog))
-        self.render_template('main.html', blogs=blogs,
+        self.render_template('show_blogs.html', blogs=blogs,
                              user=self.user_obj,
                              likes=likes, author=authors)

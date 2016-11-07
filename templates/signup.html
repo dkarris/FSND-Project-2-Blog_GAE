@@ -1,4 +1,5 @@
-{% include 'header.html' %}
+{% extends 'header.html' %}
+{% block signup %}
 <H4> Please enter your username and password. </H4>
 <form method="post">
 	<div id = "signup_table">
@@ -58,3 +59,4 @@
 		</table>
 	</div>
 </form> 
+{% endblock %}

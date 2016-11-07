@@ -1,5 +1,6 @@
  
-{% include 'header.html' %}
+{% extends 'header.html' %}
+{% block display_blog %}
 {% set blog_id_edit = 'edit'+blog_id %}
 {% set blog_id_delete = 'kill'+blog_id %}
 {% set blog_id_show = 'show'+blog_id %}
@@ -35,3 +36,4 @@ Comments:
 
 <a href ="{{blog_id_edit}}">Click here to edit blog content</a> <BR>
 <a href="{{blog_id_delete}}">Click here to delete the blog</a> <BR>Warning all comments will also get deleted.<BR>
+{% endblock %}

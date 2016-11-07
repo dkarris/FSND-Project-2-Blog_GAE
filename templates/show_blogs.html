@@ -1,3 +1,7 @@
+{% extends "header.html" %}
+
+{% block show_blogs %}
+
 <h2>  Recent blogs </h2>
 <h3>Click on blog title to edit or leave comments:</h3> 
 {% set x=0 %}
@@ -16,7 +20,11 @@
 	<textarea disabled>{{blog.blogtext}}</textarea>
 	</div> 
 <hr>
+
 {% set x=x+1 %}
 {%- endfor %}
+{% endblock %}
+
+
  
 
