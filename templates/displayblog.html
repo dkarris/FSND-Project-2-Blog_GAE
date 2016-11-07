@@ -23,7 +23,7 @@ Comments:
 				<input type="hidden" name="comment_id" value="{{comment.key()}}"> 
 				<input type="hidden" name="blog_id" value="{{blog_id_show}}">
 				User: {{comment.author}} <BR>
-				Comment: {{comment.comment| letitpass() | safe}} <BR>
+				Comment:<BR>{{comment.comment| letitpass() | safe}} <BR>
 				<label>Last modified on: </label>{{comment.modified.strftime('%Y-%m-%d %H:%M')}} 
 				<button type="submit" formaction="/updatecomment" formmethod="get">Edit</button>
 				<button type="submit" formaction = "/deletecomment">Delete comment</button>
