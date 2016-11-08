@@ -47,6 +47,14 @@ Add bootstrap and mobile versions, JS and modals to improve usability.
 - Removed <table> tags from signin and login forms
 - Changed jinja template structure from using {% include %} to {% extends %}
 
+#### 11/08/2016 Implemented bug fix
+
+In bloghandlers.py Editblog handler POST method didn't exit script execution when user was not authorized. Fixed
+
+
+
+
+
 
 
 
