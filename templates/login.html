@@ -2,31 +2,24 @@
 {% block login %}
 <H4> Please enter your username and password </H4>
 <form method = "post">
-	<table>
-		<tr>
-			<td class="label">
-				Username
-			</td>
-			<td>
-				<input type="text" name="username" value="{{username}}">
-			</td>
-		</tr>
-		<tr>
-			<td class="label">
-			 Password
-			</td>
-			<td>
-				<input type="password" name="password">
-			</td>
-		</tr>
-		<tr>
-			<td>
-				<input type = "submit" name = "submit_login">
-			</td>
-			<td class="error">
-				{{error}}
-			</td>
-		</tr>
-	</table>
+	<fieldset>
+		<legend> User login information </legend>
+		<div class="label">
+			Username
+		</div>
+		<div>
+			<input type="text" name="username" value="{{username}}">
+		</div>
+		<div class="label">
+			Password
+		</div>
+		<div>
+			<input type="password" name="password">
+		</div>
+		<input type = "submit" name = "submit_login">
+		<div class="error">
+			{{error}}
+		</div>
+	</fieldset>
 </form>
 {% endblock %}

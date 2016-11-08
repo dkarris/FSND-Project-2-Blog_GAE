@@ -228,18 +228,23 @@ class Editblog(Blogpage):
             blogtext = self.request.get('blogtext')
             if not self.blog_author(blog_id):
                 self.render_template('error_user.html', user=self.user_obj)
-            if blogtitle and blogtext:
-                blog = db.get(blog_id)
-                blog.blogtext = blogtext
-                blog.blogtitle = blogtitle
-                blog.put()
-                time.sleep(0.4)
-                self.redirect('/')
             else:
-                error = 'Either blog title or blog text are empty'
-                self.render_template(
-                    'editblog.html', user=self.user_obj, blogtitle=blogtitle,
-                    blogtext=blogtext, blog_id=blog_id, error=error)
+                if blogtitle and blogtext:
+                    blog = db.get(blog_id)
+                    blog.blogtext = blogtext
+                    blog.blogtitle = blogtitle
+                    blog.put()
+                    time.sleep(0.4)
+                    self.redirect('/')
+                else:
+                    error = 'Either blog title or blog text are empty'
+                    self.render_template(
+                        'editblog.html', user=self.user_obj, blogtitle=blogtitle,
+                        blogtext=blogtext, blog_id=blog_id, error=error)
+        else:
+            self.write('Error. Something wrong with blog link.' +
+                       ' Please try again! <BR>')
+            self.write('Please <a href="/">click here</a> to go the main page')
 
 class Deleteblog(Blogpage):
     def get(self, blog_id):

@@ -17,6 +17,7 @@ input[type="text"],[type="password"]{
 }
 input[type="submit"]{
 	font-size: 20px;
+	margin-top:15px;
 }
 #blogname, #login {
 	border: 2px solid;
@@ -42,6 +43,8 @@ input[type="submit"]{
 	color:red;
 }
 .label {
-	text-align: right;
+	text-align: left;
 	font-size: 17px;
+	margin:5px;
+	font-style: oblique;
 }
